@@ -2,14 +2,14 @@ from sqlalchemy import create_engine, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# Используем SQLite для начала (это проще в Codespace, потом перейдем на Postgres)
+# Настройка базы данных SQLite
 SQLALCHEMY_DATABASE_URL = "sqlite:///./music.db"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# Модель песни в базе данных
+# Модель песни (Сущность для базы данных)
 class Song(Base):
     __tablename__ = "songs"
 
@@ -17,6 +17,8 @@ class Song(Base):
     title = Column(String, index=True)
     artist = Column(String, index=True)
     lyrics = Column(Text)
+    # Поле для хранения пути к аудиофайлу (тестовый бит из FL Studio)
+    audio_url = Column(String) 
 
-# Создаем таблицы
+# Автоматическое создание таблиц при запуске
 Base.metadata.create_all(bind=engine)
