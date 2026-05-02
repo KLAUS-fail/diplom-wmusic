@@ -1,3 +1,5 @@
+# САНЯ ВОЗЬМИ ТЕЛЕФОН ТАМ НА ДНЕ СООБЩЕНИЕ ТЕБЕ
+
 # diplom-wmusic
 # 🛠 Bragi Notes - Инструкция разработчика
 
@@ -13,3 +15,8 @@
 ### 🎨 Стек
 - FastAPI, SQLAlchemy (SQLite/Postgres)
 - React + Vite
+### ДЛЯ САНИ
+хоть это и ридми, но
+pip install -r backend/requirements.txt <-в терминал
+не забывай про порты, они должны быть public
+если что пиши
