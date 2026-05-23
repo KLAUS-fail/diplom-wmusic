@@ -4,7 +4,7 @@
 # 🛠 Bragi Notes - Инструкция разработчика
 
 ### 🚀 Запуск проекта
-1. **Backend:** `cd backend && python main.py`
+1. **Backend:** `cd backend && python main.py`=`uvicorn main:app --reload --host 0.0.0.0 --port 8000`
 2. **Frontend:** `cd frontend && npm run dev`
 
 ### 📋 Важные нюансы
