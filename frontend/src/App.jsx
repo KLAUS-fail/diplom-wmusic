@@ -9,17 +9,15 @@ function App() {
   const [selected, setSelected] = useState(null);
   const [user, setUser] = useState(null);
   
-  // Авторизация
   const [authMode, setAuthMode] = useState('login'); 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
-  // Состояния для формы новой песни
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [lyrics, setLyrics] = useState('');
-  const [audioFile, setAudioFile] = useState(null); // Здесь хранится сам файл mp3
+  const [audioFile, setAudioFile] = useState(null); 
 
   useEffect(() => { loadSongs(); }, []);
 
@@ -33,7 +31,6 @@ function App() {
   const handleAuth = async (e) => {
     e.preventDefault();
     try {
-      // Переводим авторизацию на FormData для совместимости с бэкендом
       const formData = new FormData();
       formData.append('username', username);
       formData.append('password', password);
@@ -53,32 +50,29 @@ function App() {
     }
   };
 
-  // Функция добавления песни с файлом
   const handleAddSong = async (e) => {
     e.preventDefault();
     try {
-      // Используем FormData для отправки файлов на бэкенд
       const formData = new FormData();
       formData.append('title', title);
       formData.append('artist', artist);
-      formData.append('lyrics', lyrics);
+      formData.append('lyrics', lyrics); // Отправится пустым, если поле не заполнено
+      
       if (audioFile) {
-        formData.append('audio_file', audioFile); // Прикрепляем mp3 файл
+        formData.append('audio_file', audioFile); // Передаем чистый файл из нулевого индекса массива
       }
 
       await axios.post(`${API_URL}/songs`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      // Очищаем форму после успешной отправки
       setTitle(''); 
       setArtist(''); 
       setLyrics('');
       setAudioFile(null);
-      // Сбрасываем визуально поле выбора файла
       document.getElementById('file-input').value = '';
       
-      loadSongs(); // Обновляем список треков
+      loadSongs(); 
       alert("Произведение успешно добавлено!");
     } catch (err) { 
       alert("Не удалось сохранить песню в базу данных"); 
@@ -109,19 +103,19 @@ function App() {
             <input placeholder="Название трека" required value={title} onChange={e => setTitle(e.target.value)} />
             <input placeholder="Исполнитель" required value={artist} onChange={e => setArtist(e.target.value)} />
             
-            {/* Поле выбора файла вместо текстовой ссылки */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <label style={{ fontSize: '0.85rem', color: '#7ca0a0' }}>Аудиофайл трека (.mp3):</label>
               <input 
                 id="file-input"
                 type="file" 
                 accept="audio/mp3, audio/mpeg"
-                onChange={e => setAudioFile(e.target.files[0])} 
+                onChange={e => setAudioFile(e.target.files[0])} // Исправлено: берем первый файл из списка
                 style={{ border: 'none', padding: '5px 0' }}
               />
             </div>
 
-            <textarea placeholder="Текст песни" required rows="5" value={lyrics} onChange={e => setLyrics(e.target.value)} />
+            {/* Убран атрибут required — текст теперь не обязателен */}
+            <textarea placeholder="Текст песни (необязательно)" rows="5" value={lyrics} onChange={e => setLyrics(e.target.value)} />
             <button type="submit">Опубликовать</button>
           </form>
         </section>
@@ -132,7 +126,6 @@ function App() {
               <h2>{selected.title}</h2>
               <h3>Автор: {selected.artist}</h3>
               
-              {/* Аудио плеер HTML5 */}
               {selected.audio_url && (
                 <div style={{ margin: '15px 0' }}>
                   <audio controls src={`${API_URL}${selected.audio_url}`} style={{ width: '100%' }} />
@@ -140,7 +133,7 @@ function App() {
               )}
               
               <hr />
-              <pre className="lyrics-text">{selected.lyrics}</pre>
+              <pre className="lyrics-text">{selected.lyrics || "Текст отсутствует"}</pre>
             </article>
           ) : <p className="placeholder">Выберите произведение из списка слева</p>}
         </section>
