@@ -9,13 +9,13 @@ function App() {
   const [selected, setSelected] = useState(null);
   const [user, setUser] = useState(null);
   
-  // Состояния для авторизации (из твоего Flask-примера)
+  // Авторизация
   const [authMode, setAuthMode] = useState('login'); 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
-  // Состояния для добавления музыки
+  // Добавление музыки
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [lyrics, setLyrics] = useState('');
@@ -30,7 +30,6 @@ function App() {
     } catch (err) { console.error("Ошибка загрузки песен", err); }
   };
 
-  // Функция авторизации, работающая по принципу Flask-формы
   const handleAuth = async (e) => {
     e.preventDefault();
     try {
@@ -41,7 +40,7 @@ function App() {
       const res = await axios.post(`${API_URL}/${authMode}`, formData);
       
       if (authMode === 'login') {
-        setUser(res.data.username); // Записываем пользователя в сессию фронтенда
+        setUser(res.data.username);
         setIsAuthOpen(false);
       } else {
         alert("Регистрация успешна! Теперь введите данные для входа.");
@@ -83,6 +82,25 @@ function App() {
     }
   };
 
+  // Функция для удаления трека из базы данных
+  const handleDeleteSong = async (e, songId) => {
+    e.stopPropagation(); // Отменяет выбор песни при клике на удаление
+    if (!window.confirm("Удалить это произведение из архива?")) return;
+
+    try {
+      await axios.delete(`${API_URL}/songs/${songId}`);
+      
+      // Если удалили ту песню, которая сейчас открыта — закрываем её просмотр
+      if (selected?.id === songId) {
+        setSelected(null);
+      }
+      
+      loadSongs(); // Обновляем список треков в интерфейсе
+    } catch (err) {
+      alert("Не удалось удалить произведение");
+    }
+  };
+
   return (
     <div className="app-layout">
       <header className="main-header">
@@ -96,8 +114,24 @@ function App() {
           <h2>Архив произведений</h2>
           <div className="songs-list">
             {songs.map(song => (
-              <div key={song.id} onClick={() => setSelected(song)} className={`song-item ${selected?.id === song.id ? 'active' : ''}`}>
-                <strong>{song.title}</strong> — {song.artist}
+              <div 
+                key={song.id} 
+                onClick={() => setSelected(song)} 
+                className={`song-item ${selected?.id === song.id ? 'active' : ''}`}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
+                <div>
+                  <strong>{song.title}</strong> — {song.artist}
+                </div>
+                {/* Кнопка удаления, видимая только авторизованным пользователям */}
+                {user && (
+                  <span 
+                    onClick={(e) => handleDeleteSong(e, song.id)} 
+                    style={{ color: '#ff6b6b', cursor: 'pointer', fontSize: '0.85rem', textDecoration: 'underline', marginLeft: '10px' }}
+                  >
+                    Удалить
+                  </span>
+                )}
               </div>
             ))}
           </div>
