@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
-const API_URL = "https://silver-winner-pjr47xxvr6w7h7gv6-8000.app.github.dev"; 
+const API_URL = "https:// silver-winner-pjr47xxvr6w7h7gv6-8000 .app.github.dev"; 
 
 function App() {
   const [songs, setSongs] = useState([]);
@@ -15,11 +15,11 @@ function App() {
   const [password, setPassword] = useState('');
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
-  // Форма трека
+  // Состояния для формы новой песни
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [lyrics, setLyrics] = useState('');
-  const [audioUrl, setAudioUrl] = useState(''); // Ссылка на MP3
+  const [audioFile, setAudioFile] = useState(null); // Здесь хранится сам файл mp3
 
   useEffect(() => { loadSongs(); }, []);
 
@@ -33,7 +33,12 @@ function App() {
   const handleAuth = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`${API_URL}/${authMode}`, { username, password });
+      // Переводим авторизацию на FormData для совместимости с бэкендом
+      const formData = new FormData();
+      formData.append('username', username);
+      formData.append('password', password);
+
+      const res = await axios.post(`${API_URL}/${authMode}`, formData);
       if (authMode === 'login') {
         setUser(res.data.username);
         setIsAuthOpen(false);
@@ -48,16 +53,36 @@ function App() {
     }
   };
 
+  // Функция добавления песни с файлом
   const handleAddSong = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_URL}/songs`, { title, artist, lyrics, audio_url: audioUrl });
+      // Используем FormData для отправки файлов на бэкенд
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('artist', artist);
+      formData.append('lyrics', lyrics);
+      if (audioFile) {
+        formData.append('audio_file', audioFile); // Прикрепляем mp3 файл
+      }
+
+      await axios.post(`${API_URL}/songs`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      // Очищаем форму после успешной отправки
       setTitle(''); 
       setArtist(''); 
       setLyrics('');
-      setAudioUrl('');
-      loadSongs();
-    } catch (err) { alert("Не удалось сохранить песню"); }
+      setAudioFile(null);
+      // Сбрасываем визуально поле выбора файла
+      document.getElementById('file-input').value = '';
+      
+      loadSongs(); // Обновляем список треков
+      alert("Произведение успешно добавлено!");
+    } catch (err) { 
+      alert("Не удалось сохранить песню в базу данных"); 
+    }
   };
 
   return (
@@ -83,7 +108,19 @@ function App() {
             <h3>Добавить новое произведение</h3>
             <input placeholder="Название трека" required value={title} onChange={e => setTitle(e.target.value)} />
             <input placeholder="Исполнитель" required value={artist} onChange={e => setArtist(e.target.value)} />
-            <input placeholder="Путь к MP3 (например, /static/audio/test.mp3)" value={audioUrl} onChange={e => setAudioUrl(e.target.value)} />
+            
+            {/* Поле выбора файла вместо текстовой ссылки */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <label style={{ fontSize: '0.85rem', color: '#7ca0a0' }}>Аудиофайл трека (.mp3):</label>
+              <input 
+                id="file-input"
+                type="file" 
+                accept="audio/mp3, audio/mpeg"
+                onChange={e => setAudioFile(e.target.files[0])} 
+                style={{ border: 'none', padding: '5px 0' }}
+              />
+            </div>
+
             <textarea placeholder="Текст песни" required rows="5" value={lyrics} onChange={e => setLyrics(e.target.value)} />
             <button type="submit">Опубликовать</button>
           </form>
