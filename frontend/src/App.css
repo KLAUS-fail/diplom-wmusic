@@ -1,220 +1,281 @@
+/* ==========================================================================
+   1. СБРОС СТИЛЕЙ И ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+   ========================================================================== */
 :root {
-  --bg-color: #050a08;        /* очень темный лесной */
-  --card-bg: #0f1a16;        /* цвет хвои */
-  --accent-ice: #a8dadc;     /* лед для контраста */
-  --nordic-green: #2d6a4f;   /* акцентный зеленый */
+  --bg-main: #061313;        /* Глубокий темно-зеленый фон */
+  --bg-surface: #0b1e1e;     /* Фон панелей и карточек */
+  --bg-input: #030a0a;       /* Фон полей ввода */
+  --text-main: #e0eeee;      /* Основной светло-серый текст */
+  --text-muted: #7ca0a0;     /* Приглушенный ледяной текст */
+  --accent-blue: #a3e5e5;    /* Ледяной синий акцент */
+  --accent-border: #143535;  /* Строгие академические границы */
+  --font-serif: 'Times New Roman', Times, serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 body {
-  background-color: var(--bg-color);
+  background-color: var(--bg-main);
   color: var(--text-main);
-  font-family: 'Segoe UI', sans-serif;
-  margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
 
-.container {
-  max-width: 900px;
+/* ==========================================================================
+   2. ГЛАВНЫЙ СТРУКТУРНЫЙ СKЕЛЕТ (LAYOUT)
+   ========================================================================== */
+.app-layout {
+  max-width: 1300px;
   margin: 0 auto;
-  padding: 40px 20px;
-}
-
-.main-title {
-  color: var(--accent-ice);
-  letter-spacing: 5px;
-  text-align: center;
-  font-size: 2.5rem;
-}
-
-.subtitle {
-  text-align: center;
-  color: var(--text-muted);
-  font-style: italic;
-  margin-bottom: 50px;
-}
-
-/* Карточки */
-.song-card {
-  background: var(--card-bg);
-  padding: 25px;
-  margin-bottom: 20px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 1px solid rgba(168, 218, 220, 0.1);
-}
-
-.song-card:hover {
-  transform: translateY(-5px);
-  background: #1d2524;
-  border-color: var(--accent-ice);
-}
-
-.card-title { margin: 0; font-size: 1.4rem; }
-.card-artist { margin: 10px 0 0 0; color: var(--text-muted); }
-
-/* Плеер и Текст */
-.btn-back {
-  background: none;
-  border: 1px solid var(--accent-ice);
-  color: var(--accent-ice);
-  padding: 8px 20px;
-  border-radius: 20px;
-  cursor: pointer;
-}
-
-.player-container {
-  background: #1d2524;
   padding: 20px;
-  border-radius: 15px;
-  margin: 30px 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-.audio-player { width: 100%; filter: invert(10%) hue-rotate(150deg); }
-
-.lyrics-box {
-  background: rgba(255,255,255,0.03);
-  padding: 30px;
-  border-radius: 10px;
-  line-height: 1.8;
-}
-
-.audio-badge {
-  display: block;
-  margin-top: 15px;
-  color: #4ade80;
-  font-size: 0.85rem;
-}
-
+/* Шапка портала */
 .main-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 30px;
-  background: rgba(15, 26, 22, 0.8);
-  backdrop-filter: blur(10px);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  border-bottom: 1px solid rgba(168, 218, 220, 0.1);
+  border-bottom: 1px solid var(--accent-border);
+  padding-bottom: 15px;
+  margin-bottom: 25px;
 }
 
-.logo {
-  font-weight: bold;
+.main-header h1 {
+  font-family: var(--font-serif);
+  font-size: 2.2rem;
+  font-weight: 400;
   letter-spacing: 2px;
-  color: var(--accent-ice);
+  color: var(--accent-blue);
 }
 
-.header-menu {
+/* Контейнер двух колонок */
+.main-content {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 35px;
+  align-items: start;
+}
+
+/* ==========================================================================
+   3. ЛЕВАЯ ПАНЕЛЬ: КАТАЛОГ И СПИСОК ПЕСЕН
+   ========================================================================== */
+.left-panel h2 {
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  font-weight: 400;
+  margin-bottom: 15px;
+  border-bottom: 1px dashed var(--accent-border);
+  padding-bottom: 5px;
+}
+
+.songs-list {
   display: flex;
-  align-items: center;
-  gap: 20px;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 30px;
+  max-height: 320px;
+  overflow-y: auto;
 }
 
-.login-btn {
-  background: transparent;
-  border: 1px solid var(--accent-ice);
-  color: var(--accent-ice);
-  padding: 5px 15px;
-  border-radius: 5px;
+/* Карточка песни в списке */
+.song-item {
+  padding: 12px 15px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--accent-border);
   cursor: pointer;
-  transition: 0.3s;
+  transition: all 0.2s ease;
 }
 
-.login-btn:hover {
-  background: var(--accent-ice);
-  color: var(--bg-color);
+.song-item:hover {
+  background-color: #0f2a2a;
+  border-color: var(--text-muted);
 }
 
-.burger-menu {
-  font-size: 1.5rem;
+.song-item.active {
+  background-color: #123333;
+  border-color: var(--accent-blue);
+}
+
+.song-item strong {
+  color: var(--accent-blue);
+  font-size: 1.05rem;
+}
+
+/* ==========================================================================
+   4. ФОРМА ДОБАВЛЕНИЯ ПРОИЗВЕДЕНИЙ
+   ========================================================================== */
+.add-song-form {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--accent-border);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.add-song-form h3 {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: var(--accent-blue);
+  margin-bottom: 5px;
+}
+
+.add-song-form input,
+.add-song-form textarea,
+.auth-form input {
+  width: 100%;
+  padding: 10px;
+  background-color: var(--bg-input);
+  border: 1px solid var(--accent-border);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+
+.add-song-form input:focus,
+.add-song-form textarea:focus,
+.auth-form input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+.add-song-form textarea {
+  resize: vertical;
+}
+
+/* Универсальные кнопки */
+.add-song-form button,
+.auth-form button,
+.main-header button {
+  background-color: #123333;
+  color: var(--accent-blue);
+  border: 1px solid var(--accent-border);
+  padding: 10px 15px;
+  font-size: 0.95rem;
   cursor: pointer;
-  color: var(--accent-ice);
+  transition: all 0.2s;
 }
 
-/* Стили для всплывающего окна (Модалки) */
-.modal-overlay {
+.add-song-form button:hover,
+.auth-form button:hover,
+.main-header button:hover {
+  background-color: #174242;
+  border-color: var(--accent-blue);
+}
+
+/* ==========================================================================
+   5. ПРАВАЯ ПАНЕЛЬ: ПРОСМОТР ТЕКСТА (LYRICS VIEWER)
+   ========================================================================== */
+.right-panel {
+  border-left: 1px solid var(--accent-border);
+  padding-left: 35px;
+  min-height: 500px;
+}
+
+.lyrics-viewer h2 {
+  font-family: var(--font-serif);
+  font-size: 2.4rem;
+  font-weight: 400;
+  color: var(--accent-blue);
+  margin-bottom: 5px;
+}
+
+.lyrics-viewer h3 {
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-bottom: 20px;
+}
+
+.lyrics-viewer hr {
+  border: none;
+  border-top: 1px solid var(--accent-border);
+  margin-bottom: 25px;
+}
+
+.lyrics-text {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  line-height: 1.8;
+  color: var(--text-main);
+  white-space: pre-wrap;
+}
+
+.placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 50px;
+  text-align: center;
+}
+
+/* ==========================================================================
+   6. МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ (AUTH MODAL)
+   ========================================================================== */
+.auth-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.7); /* Затемнение фона */
+  background-color: rgba(3, 10, 10, 0.85);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
 }
 
-.modal-content {
-  background-color: #1b2e24; /* Темно-зеленый цвет хвои в Bragi стиле */
-  padding: 30px;
-  border-radius: 8px;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-  border: 1px solid #4a7c59;
-  position: relative;
-}
-
-.modal-content h3 {
-  color: #a3cef1; /* Ледяной голубой акцент */
-  margin-top: 0;
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-.modal-close {
-  position: absolute;
-  top: 10px;
-  right: 15px;
-  background: none;
-  border: none;
-  color: #fff;
-  font-size: 20px;
-  cursor: pointer;
-}
-
-/* Стили формы */
 .auth-form {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--accent-blue);
+  padding: 30px;
+  width: 360px;
   display: flex;
   flex-direction: column;
   gap: 15px;
+  position: relative;
 }
 
-.auth-form input {
-  padding: 10px;
-  border-radius: 4px;
-  border: 1px solid #4a7c59;
-  background-color: #0f1a14;
-  color: #fff;
-  font-size: 14px;
-}
-
-.auth-form input:focus {
-  outline: none;
-  border-color: #a3cef1; /* Голубое свечение при фокусе */
-}
-
-.auth-btn {
-  background-color: #4a7c59;
-  color: white;
-  padding: 10px;
-  border: none;
-  border-radius: 4px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.auth-btn:hover {
-  background-color: #a3cef1;
-  color: #0f1a14;
-}
-
-.auth-message {
+.auth-form h3 {
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  font-weight: 400;
   text-align: center;
-  font-size: 14px;
-  color: #fff;
-  margin-top: 10px;
+  margin-bottom: 5px;
+}
+
+.toggle-auth-mode {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: center;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.toggle-auth-mode:hover {
+  color: var(--accent-blue);
+}
+
+.auth-form .close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 0;
+  margin-top: 5px;
+  text-decoration: underline;
+}
+
+.auth-form .close-btn:hover {
+  color: #ff6b6b;
 }
