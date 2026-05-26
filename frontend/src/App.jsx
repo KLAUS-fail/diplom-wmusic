@@ -5,17 +5,65 @@ import './App.css'
 function App() {
   const [songs, setSongs] = useState([])
   const [currentSong, setCurrentSong] = useState(null)
+  
+  // Состояния для модального окна (Вход / Регистрация)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(false) // false = Вход, true = Регистрация
+  
+  // Поля формы (только то, что нужно для диплома — без лишней напыщенности)
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [message, setMessage] = useState('')
 
-  // Актуальный URL бэкенда
-  const API_URL = "https://silver-winner-pjr47xxvr6w7h7gv6-8000.app.github.dev"
+  // Актуальный URL бэкенда в Codespaces
+  const API_URL = "https://github.dev"
 
+  // Загрузка песен при старте страницы
   useEffect(() => {
     axios.get(`${API_URL}/songs`)
       .then(res => setSongs(res.data))
-      .catch(err => console.error("Ошибка связи с Вальгаллой (бэкендом):", err))
+      .catch(err => console.error("Ошибка связи с бэкендом:", err))
   }, [])
 
-  // Страница конкретной песни
+  // Отправка формы на бэкенд
+  const handleAuthSubmit = (e) => {
+    e.preventDefault()
+    setMessage('')
+
+    if (isSignUp) {
+      // Самая простая регистрация: только логин и пароль
+      axios.post(`${API_URL}/register`, {
+        username: username,
+        password: password
+      })
+      .then(res => {
+        if (res.data.error) {
+          setMessage(res.data.error)
+        } else {
+          setMessage(res.data.message)
+          setUsername('')
+          setPassword('')
+        }
+      })
+      .catch(err => {
+        setMessage('Ошибка отправки запроса')
+        console.error(err)
+      })
+    } else {
+      // Заглушка для входа (сделаем следующим шагом, когда проверим это)
+      setMessage(`Вход для пользователя ${username} пока в разработке!`)
+    }
+  }
+
+  // Закрытие окна и очистка полей
+  const closeAuthModal = () => {
+    setIsModalOpen(false)
+    setMessage('')
+    setUsername('')
+    setPassword('')
+  }
+
+  // ЭКРАН 1: Страница конкретной песни (если кликнули на карточку)
   if (currentSong) {
     return (
       <div className="container">
@@ -48,13 +96,13 @@ function App() {
     )
   }
 
-  // Главная страница
+  // ЭКРАН 2: Главная страница со списком треков
   return (
     <div className="app-wrapper">
       <header className="main-header">
         <div className="logo">BRAGI NOTES</div>
         <div className="header-menu">
-          <button className="login-btn">Войти</button>
+          <button className="login-btn" onClick={() => setIsModalOpen(true)}>Войти</button>
           <div className="burger-menu">☰</div>
         </div>
       </header>
@@ -77,10 +125,54 @@ function App() {
               </div>
             ))
           ) : (
-            <p className="empty-msg">Список пуст. Используйте /seed.</p>
+            <p className="empty-msg">Список пуст. Используйте /seed на бэкенде.</p>
           )}
         </div>
       </div>
+
+      {/* --- ПРОСТОЕ МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ --- */}
+      {isModalOpen && (
+        <div className="modal-overlay" onClick={closeAuthModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={closeAuthModal}>&times;</button>
+            
+            <h3>{isSignUp ? 'Регистрация' : 'Вход в систему'}</h3>
+            
+            <form className="auth-form" onSubmit={handleAuthSubmit}>
+              <input 
+                type="text" 
+                placeholder="Логин" 
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required 
+              />
+              
+              <input 
+                type="password" 
+                placeholder="Пароль" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required 
+              />
+              
+              <button type="submit" className="auth-btn">
+                {isSignUp ? 'Создать аккаунт' : 'Войти'}
+              </button>
+            </form>
+
+            {message && <div className="auth-message">{message}</div>}
+
+            <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '13px' }}>
+              <span 
+                style={{ color: '#a3cef1', cursor: 'pointer', textDecoration: 'underline' }}
+                onClick={() => { setIsSignUp(!isSignUp); setMessage(''); }}
+              >
+                {isSignUp ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Зарегистрироваться'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

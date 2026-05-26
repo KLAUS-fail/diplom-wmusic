@@ -1,24 +1,38 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text
+from sqlalchemy import create_engine, Column, Integer, String, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# Настройка базы данных SQLite
-SQLALCHEMY_DATABASE_URL = "sqlite:///./music.db"
+# Ссылка на PostgreSQL в Codespaces
+DATABASE_URL = "postgresql://postgres@127.0.0.1:5432/bragi_music"
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# Модель песни (Сущность для базы данных)
-class Song(Base):
-    __tablename__ = "songs"
+#МОДЕЛЬ ДАННЫХ 
+class User(Base):
+    __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, index=True)
-    artist = Column(String, index=True)
-    lyrics = Column(Text)
-    # Поле для хранения пути к аудиофайлу (тестовый бит из FL Studio)
-    audio_url = Column(String) 
+    username = Column(String, unique=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    is_admin = Column(Boolean, default=False)
 
-# Автоматическое создание таблиц при запуске
-Base.metadata.create_all(bind=engine)
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    is_admin = Column(Boolean, default=False) # Сразу заложим роль админа на будущее!
+
+# Функция для доступа к БД
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

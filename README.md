@@ -4,8 +4,9 @@
 # 🛠 Bragi Notes - Инструкция разработчика
 
 ### 🚀 Запуск проекта
-1. **Backend:** `cd backend && python main.py`=`uvicorn main:app --reload --host 0.0.0.0 --port 8000`
-2. **Frontend:** `cd frontend && npm run dev`
+1. Запуск и подготовка базы данных PostgreSQL → sudo service postgresql start
+2. **Backend:** `cd backend && uvicorn main:app --reload`
+3. **Frontend:** `cd frontend && npm run dev`
 
 ### 📋 Важные нюансы
 - **Порты:** После запуска всегда ставить порты 8000 и 5173 в режим **Public**.
