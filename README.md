@@ -4,7 +4,7 @@
 # 🛠 Bragi Notes - Инструкция разработчика
 
 ### 🚀 Запуск проекта
-1. Запуск и подготовка базы данных PostgreSQL → sudo service postgresql start
+1. **Запуск и подготовка базы данных PostgreSQL** → `sudo service postgresql start`
 2. **Backend:** `cd backend && uvicorn main:app --reload`
 3. **Frontend:** `cd frontend && npm run dev`
 
