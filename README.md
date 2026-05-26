@@ -12,6 +12,7 @@
 - **Порты:** После запуска всегда ставить порты 8000 и 5173 в режим **Public**.
 - **БД:** Если изменил `database.py`, удали `music.db` и вызови эндпоинт `/seed`.
 - **API URL:** Актуальная ссылка бэкенда живет в `App.jsx` (строка 12).
+- **В случае вывода `Form data requires "python-multipart" to be installed.` и(или) `You can install "python-multipart" with: pip install python-multipart` прменить команду → `pip install python-multipart`
 
 ### 🎨 Стек
 - FastAPI, SQLAlchemy (SQLite/Postgres)

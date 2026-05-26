@@ -2,18 +2,20 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
-const API_URL = "https:// silver-winner-pjr47xxvr6w7h7gv6-8000 .app.github.dev"; 
+const API_URL = "https://silver-winner-pjr47xxvr6w7h7gv6-8000.app.github.dev"; 
 
 function App() {
   const [songs, setSongs] = useState([]);
   const [selected, setSelected] = useState(null);
   const [user, setUser] = useState(null);
   
+  // Состояния для авторизации (из твоего Flask-примера)
   const [authMode, setAuthMode] = useState('login'); 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
+  // Состояния для добавления музыки
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [lyrics, setLyrics] = useState('');
@@ -28,6 +30,7 @@ function App() {
     } catch (err) { console.error("Ошибка загрузки песен", err); }
   };
 
+  // Функция авторизации, работающая по принципу Flask-формы
   const handleAuth = async (e) => {
     e.preventDefault();
     try {
@@ -36,11 +39,12 @@ function App() {
       formData.append('password', password);
 
       const res = await axios.post(`${API_URL}/${authMode}`, formData);
+      
       if (authMode === 'login') {
-        setUser(res.data.username);
+        setUser(res.data.username); // Записываем пользователя в сессию фронтенда
         setIsAuthOpen(false);
       } else {
-        alert("Регистрация успешна! Войдите под своими данными.");
+        alert("Регистрация успешна! Теперь введите данные для входа.");
         setAuthMode('login');
       }
       setUsername('');
@@ -56,10 +60,10 @@ function App() {
       const formData = new FormData();
       formData.append('title', title);
       formData.append('artist', artist);
-      formData.append('lyrics', lyrics); // Отправится пустым, если поле не заполнено
+      formData.append('lyrics', lyrics); 
       
       if (audioFile) {
-        formData.append('audio_file', audioFile); // Передаем чистый файл из нулевого индекса массива
+        formData.append('audio_file', audioFile); 
       }
 
       await axios.post(`${API_URL}/songs`, formData, {
@@ -109,12 +113,11 @@ function App() {
                 id="file-input"
                 type="file" 
                 accept="audio/mp3, audio/mpeg"
-                onChange={e => setAudioFile(e.target.files[0])} // Исправлено: берем первый файл из списка
+                onChange={e => setAudioFile(e.target.files[0])} 
                 style={{ border: 'none', padding: '5px 0' }}
               />
             </div>
 
-            {/* Убран атрибут required — текст теперь не обязателен */}
             <textarea placeholder="Текст песни (необязательно)" rows="5" value={lyrics} onChange={e => setLyrics(e.target.value)} />
             <button type="submit">Опубликовать</button>
           </form>
@@ -143,8 +146,9 @@ function App() {
         <div className="auth-modal-overlay">
           <form onSubmit={handleAuth} className="auth-form">
             <h3>{authMode === 'login' ? 'Авторизация' : 'Регистрация'}</h3>
+            <p style={{ fontSize: '0.85rem', color: '#7ca0a0', textAlign: 'center' }}>Введите данные для записи в систему</p>
             <input placeholder="Имя пользователя" required value={username} onChange={e => setUsername(e.target.value)} />
-            <input type="password" placeholder="Пароль" required value={password} onChange={e => setPassword(e.target.value)} />
+            <input type="password" placeholder="Пароль (любой)" required value={password} onChange={e => setPassword(e.target.value)} />
             <button type="submit">{authMode === 'login' ? 'Войти' : 'Создать аккаунт'}</button>
             <span onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="toggle-auth-mode">
               {authMode === 'login' ? 'Нет аккаунта? Зарегистрироваться' : 'Уже есть аккаунт? Войти'}
