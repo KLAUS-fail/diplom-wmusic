@@ -3,7 +3,7 @@ from fastapi import FastAPI, Depends, Form, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
-from database import Song, Base, engine, get_db
+from database import Song, User, Base, engine, get_db
 
 app = FastAPI()
 
@@ -55,20 +55,46 @@ def delete_song(song_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "Произведение успешно удалено"}
 
+# --- РЕАЛЬНАЯ РЕГИСТРАЦИЯ ---
 @app.post("/register")
-def register(username: str = Form(...), password: str = Form(...)):
-    if not username.strip():
-        raise HTTPException(status_code=400, detail="Имя пользователя не может быть пустым")
+def register(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
+    if not username.strip() or not password.strip():
+        raise HTTPException(status_code=400, detail="Логин и пароль не могут быть пустыми")
+    
+    # Проверяем, нет ли уже такого пользователя
+    existing_user = db.query(User).filter(User.username == username).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Пользователь с таким именем уже существует")
+    
+    new_user = User(username=username, hashed_password=password, is_admin=True) # Сразу делаем админом для тестов
+    db.add(new_user)
+    db.commit()
     return {"status": "Регистрация успешна"}
 
+# --- РЕАЛЬНАЯ АВТОРИЗАЦИЯ ---
 @app.post("/login")
-def login(username: str = Form(...), password: str = Form(...)):
-    if not username.strip():
-        raise HTTPException(status_code=400, detail="Введите имя пользователя")
-    return {"status": "Успех", "username": username}
+def login(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
+    if not username.strip() or not password.strip():
+        raise HTTPException(status_code=400, detail="Введите логин и пароль")
+    
+    # Ищем пользователя в БД
+    user = db.query(User).filter(User.username == username).first()
+    
+    # Проверяем существование и пароль
+    if not user or user.hashed_password != password:
+        raise HTTPException(status_code=401, detail="Неверное имя пользователя или пароль")
+        
+    return {"status": "Успех", "username": user.username, "is_admin": user.is_admin}
 
+# --- ИНИЦИАЛИЗАЦИЯ С ТЕСТОВЫМ АДМИНОМ ---
 @app.get("/seed")
 def seed_data(db: Session = Depends(get_db)):
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
-    return {"status": "База данных PostgreSQL успешно инициализирована"}
+    
+    # Автоматически создаем учетную запись администратора для демонстрации на защите
+    admin_user = User(username="admin", hashed_password="admin", is_admin=True)
+    db.add(admin_user)
+    db.commit()
+    
+    return {"status": "База данных PostgreSQL успешно инициализирована. Создан пользователь admin с паролем admin."}

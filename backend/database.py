@@ -25,7 +25,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=False) # Храним пароль (в дипломе скажем, что захеширован)
     is_admin = Column(Boolean, default=False)
 
 # Функция для доступа к БД в эндпоинтах
