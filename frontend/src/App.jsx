@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 // Автоматически вычисляем URL бэкенда на основе текущего адреса фронтенда в Codespaces
-const CURRENT_URL = window.location.href;
+const CURRENT_URL = window.location.origin;
 const API_URL = CURRENT_URL.includes("5173") 
-  ? CURRENT_URL.replace("5173", "8000").replace(/\/$/, "") 
+  ? CURRENT_URL.replace("5173", "8000") 
   : "https://silver-winner-pjr47xxvr6w7h7gv6-8000.app.github.dev";
 
 function App() {
   const [songs, setSongs] = useState([]);
   const [selected, setSelected] = useState(null);
   const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false); // Храним статус роли
   
   // Авторизация
   const [authMode, setAuthMode] = useState('login'); 
@@ -27,8 +28,10 @@ function App() {
   useEffect(() => { 
     loadSongs(); 
     const savedUser = localStorage.getItem('bragi_username');
+    const savedAdmin = localStorage.getItem('bragi_is_admin');
     if (savedUser) {
       setUser(savedUser);
+      setIsAdmin(savedAdmin === 'true');
     }
   }, []);
 
@@ -52,7 +55,9 @@ function App() {
       
       if (authMode === 'login') {
         setUser(res.data.username);
+        setIsAdmin(res.data.is_admin);
         localStorage.setItem('bragi_username', res.data.username);
+        localStorage.setItem('bragi_is_admin', res.data.is_admin ? 'true' : 'false');
         setIsAuthOpen(false);
       } else {
         alert("Регистрация успешна! Теперь введите данные для входа.");
@@ -67,7 +72,9 @@ function App() {
 
   const handleLogout = () => {
     setUser(null);
+    setIsAdmin(false);
     localStorage.removeItem('bragi_username');
+    localStorage.removeItem('bragi_is_admin');
   };
 
   const handleAddSong = async (e) => {
@@ -78,8 +85,8 @@ function App() {
       formData.append('artist', artist);
       formData.append('lyrics', lyrics); 
       
-      if (audioFile) {
-        formData.append('audio_file', audioFile); 
+      if (audioFile && audioFile[0]) {
+        formData.append('audio_file', audioFile[0]); 
       }
 
       await axios.post(`${API_URL}/songs`, formData, {
@@ -282,6 +289,7 @@ function App() {
       </header>
 
       <main style={styles.mainContent}>
+        {/* ЛЕВАЯ ПАНЕЛЬ С ТРЕКАМИ */}
         <section style={styles.panel}>
           <h2 style={styles.panelTitle}>Архив произведений</h2>
           <div style={styles.songsList}>
@@ -294,7 +302,8 @@ function App() {
                 <div>
                   <strong style={{ color: '#fff' }}>{song.title}</strong> — <span style={{ color: '#a7f3d0' }}>{song.artist}</span>
                 </div>
-                {user && (
+                {/* ТОЛЬКО АДМИН ВИДИТ КНОПКУ УДАЛЕНИЯ */}
+                {user && isAdmin && (
                   <span 
                     onClick={(e) => handleDeleteSong(e, song.id)} 
                     style={styles.deleteLink}
@@ -306,8 +315,8 @@ function App() {
             ))}
           </div>
 
-          {/* Форма добавления отображается ТОЛЬКО авторизованному администратору */}
-          {user && (
+          {/* ТОЛЬКО АДМИН ВИДИТ ФОРМУ ДОБАВЛЕНИЯ */}
+          {user && isAdmin && (
             <form onSubmit={handleAddSong} style={styles.form}>
               <h3 style={{ margin: '0 0 5px 0', color: '#34d399', fontSize: '1.1rem' }}>Добавить новое произведение</h3>
               <input style={styles.input} placeholder="Название трека" required value={title} onChange={e => setTitle(e.target.value)} />
@@ -319,37 +328,53 @@ function App() {
                   id="file-input"
                   type="file" 
                   accept="audio/mp3, audio/mpeg"
-                  onChange={e => setAudioFile(e.target.files[0])} 
+                  onChange={e => setAudioFile(e.target.files)} 
                   style={{ border: 'none', padding: '5px 0', color: '#a7f3d0' }}
                 />
               </div>
 
               <textarea 
-                style={styles.input} 
-                placeholder="Текст песни (необязательно)" 
-                rows="4" 
-                value={lyrics} 
-                onChange={e => setLyrics(e.target.value)} 
-              />
-              <button type="submit" style={styles.submitBtn}>Опубликовать</button>
-            </form>
-          )}
-        </section>
+              style={styles.input} 
+              placeholder="Текст песни (необязательно)" 
+              rows="4" 
+              value={lyrics} 
+              onChange={e => setLyrics(e.target.value)} 
+            />
+            <button type="submit" style={styles.submitBtn}>Опубликовать</button>
+          </form>
+        )}
+      </section>
 
-        <section style={styles.panel}>
-          {selected ? (
-            <article style={styles.lyricsViewer}>
-              <h2 style={{ margin: 0, color: '#fff', fontSize: '1.8rem' }}>{selected.title}</h2>
-              <h3 style={{ margin: 0, color: '#34d399', fontWeight: '400' }}>Автор: {selected.artist}</h3>
-              
-              {selected.audio_url && (
-                <div style={{ margin: '10px 0' }}>
-                  <audio controls src={`${API_URL}${selected.audio_url}`} style={{ width: '100%' }} />
+      {/* ПРАВАЯ ПАНЕЛЬ С ПЛЕЕРОМ И ЛИРИКОЙ */}
+      <section style={styles.panel}>
+        {selected ? (
+          <article style={styles.lyricsViewer}>
+            {user ? (
+              <>
+                {/* ЕСЛИ ПОЛЬЗОВАТЕЛЬ АВТОРИЗОВАН (ОБЫЧНЫЙ ИЛИ АДМИН) -> ВСЁ ДОСТУПНО */}
+                <h2 style={{ margin: 0, color: '#fff', fontSize: '1.8rem' }}>{selected.title}</h2>
+                <h3 style={{ margin: 0, color: '#34d399', fontWeight: '400' }}>Автор: {selected.artist}</h3>
+                
+                {selected.audio_url && (
+                  <div style={{ margin: '10px 0' }}>
+                    <audio controls src={`${API_URL}${selected.audio_url}`} style={{ width: '100%' }} />
+                  </div>
+                )}
+                
+                <hr style={{ border: 'none', height: '1px', backgroundColor: '#23322b', margin: '10px 0' }} />
+                <pre style={styles.lyricsText}>{selected.lyrics || "Текст отсутствует"}</pre>
+              </>
+            ) : (
+              /* ЕСЛИ НА ТРЕК ТКНУЛ АНОНИМНЫЙ ГОСТЬ -> БЛОКИРУЕМ КОНТЕНТ */
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', gap: '15px', color: '#9ca3af', textAlign: 'center' }}>
+                <div style={{ fontSize: '3rem' }}>🔒</div>
+                <h3>Доступ ограничен</h3>
+                <p style={{ maxWidth: '300px', fontSize: '0.9rem' }}>
+                  Прослушивание аудиозаписей и просмотр текстов доступны только зарегистрированным слушателям системы.
+                  </p>
+                  <button style={styles.submitBtn} onClick={() => setIsAuthOpen(true)}>Войти в систему</button>
                 </div>
               )}
-              
-              <hr style={{ border: 'none', height: '1px', backgroundColor: '#23322b', margin: '10px 0' }} />
-              <pre style={styles.lyricsText}>{selected.lyrics || "Текст отсутствует"}</pre>
             </article>
           ) : (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#6b7280' }}>
@@ -359,6 +384,7 @@ function App() {
         </section>
       </main>
 
+      {/* МОДАЛКА АВТОРИЗАЦИИ */}
       {isAuthOpen && (
         <div style={styles.modalOverlay}>
           <form onSubmit={handleAuth} style={styles.modalForm}>

@@ -44,7 +44,6 @@ def add_song(
     db.commit()
     return {"status": "Песня успешно добавлена"}
 
-# --- ЭНДПОИНТ УДАЛЕНИЯ ПЕСНИ ---
 @app.delete("/songs/{song_id}")
 def delete_song(song_id: int, db: Session = Depends(get_db)):
     song = db.query(Song).filter(Song.id == song_id).first()
@@ -55,46 +54,42 @@ def delete_song(song_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "Произведение успешно удалено"}
 
-# --- РЕАЛЬНАЯ РЕГИСТРАЦИЯ ---
+# --- РЕГИСТРАЦИЯ ОБЫЧНОГО ПОЛЬЗОВАТЕЛЯ ---
 @app.post("/register")
 def register(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
     if not username.strip() or not password.strip():
         raise HTTPException(status_code=400, detail="Логин и пароль не могут быть пустыми")
     
-    # Проверяем, нет ли уже такого пользователя
     existing_user = db.query(User).filter(User.username == username).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Пользователь с таким именем уже существует")
     
-    new_user = User(username=username, hashed_password=password, is_admin=True) # Сразу делаем админом для тестов
+    # ИСХОДНО КЛАДЕМ КАК ОБЫЧНОГО ПОЛЬЗОВАТЕЛЯ (НЕ АДМИНА)
+    new_user = User(username=username, hashed_password=password, is_admin=False) 
     db.add(new_user)
     db.commit()
     return {"status": "Регистрация успешна"}
 
-# --- РЕАЛЬНАЯ АВТОРИЗАЦИЯ ---
 @app.post("/login")
 def login(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
     if not username.strip() or not password.strip():
         raise HTTPException(status_code=400, detail="Введите логин и пароль")
     
-    # Ищем пользователя в БД
     user = db.query(User).filter(User.username == username).first()
     
-    # Проверяем существование и пароль
     if not user or user.hashed_password != password:
         raise HTTPException(status_code=401, detail="Неверное имя пользователя или пароль")
         
     return {"status": "Успех", "username": user.username, "is_admin": user.is_admin}
 
-# --- ИНИЦИАЛИЗАЦИЯ С ТЕСТОВЫМ АДМИНОМ ---
 @app.get("/seed")
 def seed_data(db: Session = Depends(get_db)):
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     
-    # Автоматически создаем учетную запись администратора для демонстрации на защите
+    # Администратор создается вручную через сид
     admin_user = User(username="admin", hashed_password="admin", is_admin=True)
     db.add(admin_user)
     db.commit()
     
-    return {"status": "База данных PostgreSQL успешно инициализирована. Создан пользователь admin с паролем admin."}
+    return {"status": "База данных PostgreSQL успешно инициализирована. Создан администратор admin с паролем admin."}
