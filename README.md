@@ -22,3 +22,7 @@
 pip install -r backend/requirements.txt <-в терминал
 не забывай про порты, они должны быть public
 если что пиши
+### КТО БЫЛ ЗДЕСЬ
+KLAUS-fail
+SPBoomer
+GYZZforever

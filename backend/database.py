@@ -9,7 +9,7 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# --- МОДЕЛЬ ПЕСЕН ---
+# МОДЕЛЬ ПЕСЕН
 class Song(Base):
     __tablename__ = "songs"
 
@@ -19,13 +19,12 @@ class Song(Base):
     lyrics = Column(String, nullable=True)
     audio_url = Column(String, nullable=True)
 
-# --- МОДЕЛЬ ПОЛЬЗОВАТЕЛЕЙ ДЛЯ ДИПЛОМА ---
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, nullable=False)
-    hashed_password = Column(String, nullable=False) # Храним пароль (в дипломе скажем, что захеширован)
+    hashed_password = Column(String, nullable=False)
     is_admin = Column(Boolean, default=False)
 
 # Функция для доступа к БД в эндпоинтах

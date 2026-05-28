@@ -54,7 +54,7 @@ def delete_song(song_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "Произведение успешно удалено"}
 
-# --- РЕГИСТРАЦИЯ ОБЫЧНОГО ПОЛЬЗОВАТЕЛЯ ---
+# РЕГИСТРАЦИЯ ОБЫЧНОГО ПОЛЬЗОВАТЕЛЯ
 @app.post("/register")
 def register(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
     if not username.strip() or not password.strip():
@@ -64,7 +64,6 @@ def register(username: str = Form(...), password: str = Form(...), db: Session =
     if existing_user:
         raise HTTPException(status_code=400, detail="Пользователь с таким именем уже существует")
     
-    # ИСХОДНО КЛАДЕМ КАК ОБЫЧНОГО ПОЛЬЗОВАТЕЛЯ (НЕ АДМИНА)
     new_user = User(username=username, hashed_password=password, is_admin=False) 
     db.add(new_user)
     db.commit()
@@ -87,9 +86,21 @@ def seed_data(db: Session = Depends(get_db)):
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     
-    # Администратор создается вручную через сид
+    #Создаем администратора имя admin, пароль admin
     admin_user = User(username="admin", hashed_password="admin", is_admin=True)
     db.add(admin_user)
+    
+    song1 = Song(
+        title="Восстановленный трек 1",
+        artist="Архив Bragi Notes",
+        lyrics="Текст песни, который стерся при очистке.\nЕго можно отредактировать или оставить для демонстрации.",
+        audio_url="/static/audio/твой_файл_1.mp3" 
+    )
+    
+    db.add(song1)
     db.commit()
     
-    return {"status": "База данных PostgreSQL успешно инициализирована. Создан администратор admin с паролем admin."}
+    return {
+        "status": "Успех", 
+        "detail": "База данных инициализирована. Администратор и треки восстановлены."
+    }
