@@ -1,0 +1,58 @@
+name: Bragi Notes CI/CD Pipeline
+
+# Пайплайн запускается при каждом пуше в ветку main
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # ЭТАП 1: ЛИНТИНГ И ПРОВЕРКА КОДА БЭКЕНДА
+  backend-lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f backend/requirements.txt ]; then pip install -r backend/requirements.txt; fi
+
+    - name: Lint with flake8 (Синтаксический анализ)
+      run: |
+        # Устанавливаем линтер
+        pip install flake8
+        # Останавливаем сборку, если есть критические синтаксические ошибки Python
+        flake8 ./backend --count --select=E9,F63,F7,F82 --show-source --statistics
+
+  # ЭТАП 2: ПРОВЕРКА СБОРКИ DOCKER-КОНТЕЙНЕРОВ
+  docker-build:
+    needs: backend-lint  # Запустится только если код бэкенда прошел базовую проверку
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: actions/setup-buildx-action@v3
+
+    - name: Build Backend Docker Image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        file: ./backend/Dockerfile
+        push: false  # Просто проверяем сборку, на сервера пока не пушим
+
+    - name: Build Frontend Docker Image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        file: ./frontend/Dockerfile
+        push: false

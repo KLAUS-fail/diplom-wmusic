@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # Сервер базы данных
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: bragi_postgres_container
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: bragi_music
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - bragi_network
+
+  # Наш бэкенд на FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bragi_backend_container
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_HOST=postgres_db  # Передаем имя сервиса базы данных
+    volumes:
+      - ./backend:/app  
+      - ./backend/static:/app/static
+    depends_on:
+      - postgres_db  # Бэкенд запустится только после старта базы данных
+    networks:
+      - bragi_network
+      
+      # Фронтенд на React + Vite (Добавили Сане в копилку DevOps задач)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: bragi_frontend_container
+    restart: always
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # Чтобы локальные node_modules не затирались контейнерными
+    depends_on:
+      - backend
+    networks:
+      - bragi_network
+
+volumes:
+  postgres_data:
+
+networks:
+  bragi_network:
+    driver: bridge
