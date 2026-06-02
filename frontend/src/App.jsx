@@ -3,15 +3,18 @@ import axios from 'axios';
 
 // Автоматически вычисляем URL бэкенда на основе текущего адреса фронтенда в Codespaces
 const CURRENT_URL = window.location.origin;
-const API_URL = CURRENT_URL.includes("5173") 
-  ? CURRENT_URL.replace("5173", "8000") 
-  : "https://silver-winner-pjr47xxvr6w7h7gv6-8000.app.github.dev";
+const API_URL = "https://cuddly-spork-4jwpjwxwv5vh5jr9-8000.app.github.dev";
+const currentUserId = 2;
 
 function App() {
   const [songs, setSongs] = useState([]);
+  const [playlists, setPlaylists] = useState([]);
+  const [favoriteSongs, setFavoriteSongs] = useState([]);
+  const [newPlaylistTitle, setNewPlaylistTitle] = useState('');
   const [selected, setSelected] = useState(null);
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false); // Храним статус роли
+  const [activePlaylistId, setActivePlaylistId] = useState(null);
   
   // Авторизация
   const [authMode, setAuthMode] = useState('login'); 
@@ -24,9 +27,10 @@ function App() {
   const [artist, setArtist] = useState('');
   const [lyrics, setLyrics] = useState('');
   const [audioFile, setAudioFile] = useState(null); 
-
   useEffect(() => { 
     loadSongs(); 
+    loadPlaylists();
+    loadFavorites();
     const savedUser = localStorage.getItem('bragi_username');
     const savedAdmin = localStorage.getItem('bragi_is_admin');
     if (savedUser) {
@@ -41,6 +45,84 @@ function App() {
       setSongs(res.data);
     } catch (err) { 
       console.error("Ошибка загрузки песен", err); 
+    }
+  };
+    const handleSelectPlaylist = async (playlistId) => {
+    if (activePlaylistId === playlistId) {
+      
+      setActivePlaylistId(null);
+      loadSongs();
+    } else {
+      setActivePlaylistId(playlistId);
+      try {
+        const res = await axios.get(`${API_URL}/playlists/${playlistId}/songs`);
+        setSongs(res.data); // Подменяем список треков на экране песнями из плейлиста
+      } catch (err) {
+        console.error("Ошибка загрузки песен плейлиста", err);
+      }
+    }
+  };
+
+   const loadPlaylists = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/users/${currentUserId}/playlists`);
+      setPlaylists(res.data);
+    } catch (err) {
+      console.error("Ошибка загрузки плейлистов", err);
+    }
+  };
+
+  const loadFavorites = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/users/${currentUserId}/favorites`);
+      setFavoriteSongs(res.data);
+    } catch (err) {
+      console.error("Ошибка загрузки избранного", err);
+    }
+  };
+
+const handleLike = async (e, songId) => {
+    e.stopPropagation();
+    try {
+      const formData = new FormData();
+      formData.append('user_id', currentUserId);
+      formData.append('song_id', songId);
+      
+      await axios.post(`${API_URL}/songs/like`, formData);
+      loadFavorites(); // Перезагружаем список любимых треков
+    } catch (err) {
+      alert("Не удалось изменить статус лайка");
+    }
+  };
+
+  const handleCreatePlaylist = async (e) => {
+    e.preventDefault();
+    if (!newPlaylistTitle.trim()) return;
+    try {
+      const formData = new FormData();
+      formData.append('title', newPlaylistTitle);
+      formData.append('user_id', currentUserId);
+      
+      await axios.post(`${API_URL}/playlists`, formData);
+      setNewPlaylistTitle('');
+      loadPlaylists(); // Перезагружаем список плейлистов
+    } catch (err) {
+      alert("Не удалось создать плейлист");
+    }
+  };
+
+  const handleAddSongToPlaylist = async (e, playlistId, songId) => {
+    e.stopPropagation();
+    if (!playlistId) return;
+    try {
+      const formData = new FormData();
+      formData.append('playlist_id', playlistId);
+      formData.append('song_id', songId);
+      
+      await axios.post(`${API_URL}/playlists/add-song`, formData);
+      alert("Произведение добавлено в выбранный плейлист!");
+    } catch (err) {
+      alert("Не удалось добавить в плейлист");
     }
   };
 
@@ -274,8 +356,18 @@ function App() {
       flexDirection: 'column',
       gap: '15px',
       boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
-    }
-  };
+    },
+    playlistBadge: {
+      fontSize: '0.8rem',
+      backgroundColor: '#1f2e26',
+      color: '#34d399',
+      padding: '3px 8px',
+      borderRadius: '12px',
+      border: '1px solid #10b981',
+      display: 'inline-block',
+      margin: '4px 4px 4px 0',
+  }
+};
 
   return (
     <div style={styles.appLayout}>
@@ -293,31 +385,115 @@ function App() {
         <section style={styles.panel}>
           <h2 style={styles.panelTitle}>Архив произведений</h2>
           <div style={styles.songsList}>
-            {songs.map(song => (
-              <div 
-                key={song.id} 
-                onClick={() => setSelected(song)} 
-                style={styles.songItem(selected?.id === song.id)}
-              >
-                <div>
-                  <strong style={{ color: '#fff' }}>{song.title}</strong> — <span style={{ color: '#a7f3d0' }}>{song.artist}</span>
+            {songs.map(song => {
+              const isLiked = favoriteSongs.some(f => f.id === song.id);
+              return (
+                <div 
+                  key={song.id} 
+                  onClick={() => setSelected(song)} 
+                  style={styles.songItem(selected?.id === song.id)}
+                >
+                  <div>
+                    <strong style={{ color: '#fff' }}>{song.title}</strong> — <span style={{ color: '#a7f3d0' }}>{song.artist}</span>
+                  </div>
+                  
+                  {/* Новые кнопки управления треком (лайк и плейлист) */}
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+                    {user && (
+                      <span 
+                        onClick={(e) => handleLike(e, song.id)}
+                        style={{ fontSize: '1.2rem', cursor: 'pointer', userSelect: 'none' }}
+                        title={isLiked ? "Убрать из избранного" : "Добавить в избранное"}
+                      >
+                        {isLiked ? '❤️' : '🖤'}
+                      </span>
+                    )}
+
+                    {user && (
+                      <select 
+                        onChange={(e) => handleAddSongToPlaylist(e, e.target.value, song.id)}
+                        style={{ backgroundColor: '#1f2924', color: '#a7f3d0', border: '1px solid #2d3f35', borderRadius: '6px', padding: '4px', fontSize: '0.85rem', cursor: 'pointer' }}
+                      >
+                        <option value="">+ Плейлист</option>
+                        {playlists.map(p => (
+                          <option key={p.id} value={p.id}>{p.title}</option>
+                        ))}
+                      </select>
+                    )}
+
+                    {/* ТОЛЬКО АДМИН ВИДИТ КНОПКУ УДАЛЕНИЯ */}
+                    {user && isAdmin && (
+                      <span 
+                        onClick={(e) => handleDeleteSong(e, song.id)} 
+                        style={styles.deleteLink}
+                      >
+                        Удалить
+                      </span>
+                    )}
+                  </div>
                 </div>
-                {/* ТОЛЬКО АДМИН ВИДИТ КНОПКУ УДАЛЕНИЯ */}
-                {user && isAdmin && (
-                  <span 
-                    onClick={(e) => handleDeleteSong(e, song.id)} 
-                    style={styles.deleteLink}
-                  >
-                    Удалить
-                  </span>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
+
+          {/* ИНТЕРФЕЙС УПРАВЛЕНИЯ ПЛЕЙЛИСТАМИ */}
+          {user && (
+            <div style={{ borderTop: '2px solid #2e4239', paddingTop: '15px', marginTop: '5px' }}>
+              <h3 style={{ margin: '0 0 10px 0', color: '#34d399', fontSize: '1.1rem' }}>📂 Управление медиатекой</h3>
+              <form onSubmit={handleCreatePlaylist} style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                <input 
+                  style={{ ...styles.input, flex: 1 }} 
+                  placeholder="Название нового плейлиста..." 
+                  required 
+                  value={newPlaylistTitle} 
+                  onChange={e => setNewPlaylistTitle(e.target.value)} 
+                />
+                <button type="submit" style={{ ...styles.submitBtn, padding: '10px 20px' }}>Создать</button>
+              </form>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.95rem' }}>
+                <div>
+                  <span style={{ color: '#a7f3d0' }}>Ваши плейлисты:</span>
+                  {playlists.length === 0 ? <span style={{ color: '#6b7280', marginLeft: '10px', fontSize: '0.85rem' }}>нет созданных</span> : null}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                    {playlists.map(p => {
+                      const isActive = activePlaylistId === p.id;
+                      return (
+                        <span 
+                          key={p.id} 
+                          onClick={() => handleSelectPlaylist(p.id)}
+                          style={{ 
+                            ...styles.playlistBadge, 
+                            cursor: 'pointer', 
+                            backgroundColor: isActive ? '#10b981' : '#1f2e26',
+                            color: isActive ? '#fff' : '#34d399'
+                          }}
+                          title="Нажмите, чтобы открыть треки"
+                        >
+                          🔹 {p.title}
+                        </span>
+                      );
+                    })}
+                  </div>
+
+                  {/* Кнопка быстрого возврата ко всем песням архива */}
+                  {activePlaylistId && (
+                    <button 
+                      onClick={() => { setActivePlaylistId(null); loadSongs(); }}
+                      style={{ ...styles.submitBtn, backgroundColor: '#2b3a32', padding: '5px 10px', fontSize: '0.8rem', marginTop: '10px' }}
+                    >
+                      ⬅ Показать весь архив
+                    </button>
+                  )}
+                  <span style={{ color: '#a7f3d0' }}>❤️ Любимых произведений:</span> <strong style={{ color: '#4ade80' }}>{favoriteSongs.length}</strong>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ТОЛЬКО АДМИН ВИДИТ ФОРМУ ДОБАВЛЕНИЯ */}
           {user && isAdmin && (
-            <form onSubmit={handleAddSong} style={styles.form}>
+            <form onSubmit={handleAddSong} style={{ ...styles.form, marginTop: '15px' }}>
               <h3 style={{ margin: '0 0 5px 0', color: '#34d399', fontSize: '1.1rem' }}>Добавить новое произведение</h3>
               <input style={styles.input} placeholder="Название трека" required value={title} onChange={e => setTitle(e.target.value)} />
               <input style={styles.input} placeholder="Исполнитель" required value={artist} onChange={e => setArtist(e.target.value)} />
@@ -328,49 +504,47 @@ function App() {
                   id="file-input"
                   type="file" 
                   accept="audio/mp3, audio/mpeg"
-                  onChange={e => setAudioFile(e.target.files)} 
+                  onChange={e => setAudioFile(e.target.files[0])} 
                   style={{ border: 'none', padding: '5px 0', color: '#a7f3d0' }}
                 />
               </div>
 
               <textarea 
-              style={styles.input} 
-              placeholder="Текст песни (необязательно)" 
-              rows="4" 
-              value={lyrics} 
-              onChange={e => setLyrics(e.target.value)} 
-            />
-            <button type="submit" style={styles.submitBtn}>Опубликовать</button>
-          </form>
-        )}
-      </section>
+                style={styles.input} 
+                placeholder="Текст песни (необязательно)" 
+                rows="4" 
+                value={lyrics} 
+                onChange={e => setLyrics(e.target.value)} 
+              />
+              <button type="submit" style={styles.submitBtn}>Опубликовать</button>
+            </form>
+          )}
+        </section>
 
-      {/* ПРАВАЯ ПАНЕЛЬ С ПЛЕЕРОМ И ЛИРИКОЙ */}
-      <section style={styles.panel}>
-        {selected ? (
-          <article style={styles.lyricsViewer}>
-            {user ? (
-              <>
-                {/* ЕСЛИ ПОЛЬЗОВАТЕЛЬ АВТОРИЗОВАН (ОБЫЧНЫЙ ИЛИ АДМИН) -> ВСЁ ДОСТУПНО */}
-                <h2 style={{ margin: 0, color: '#fff', fontSize: '1.8rem' }}>{selected.title}</h2>
-                <h3 style={{ margin: 0, color: '#34d399', fontWeight: '400' }}>Автор: {selected.artist}</h3>
-                
-                {selected.audio_url && (
-                  <div style={{ margin: '10px 0' }}>
-                    <audio controls src={`${API_URL}${selected.audio_url}`} style={{ width: '100%' }} />
-                  </div>
-                )}
-                
-                <hr style={{ border: 'none', height: '1px', backgroundColor: '#23322b', margin: '10px 0' }} />
-                <pre style={styles.lyricsText}>{selected.lyrics || "Текст отсутствует"}</pre>
-              </>
-            ) : (
-              /* ЕСЛИ НА ТРЕК ТКНУЛ АНОНИМНЫЙ ГОСТЬ -> БЛОКИРУЕМ КОНТЕНТ */
-              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', gap: '15px', color: '#9ca3af', textAlign: 'center' }}>
-                <div style={{ fontSize: '3rem' }}>🔒</div>
-                <h3>Доступ ограничен</h3>
-                <p style={{ maxWidth: '300px', fontSize: '0.9rem' }}>
-                  Прослушивание аудиозаписей и просмотр текстов доступны только зарегистрированным слушателям системы.
+        {/* ПРАВАЯ ПАНЕЛЬ С ПЛЕЕРОМ И ЛИРИКОЙ */}
+        <section style={styles.panel}>
+          {selected ? (
+            <article style={styles.lyricsViewer}>
+              {user ? (
+                <>
+                  <h2 style={{ margin: 0, color: '#fff', fontSize: '1.8rem' }}>{selected.title}</h2>
+                  <h3 style={{ margin: 0, color: '#34d399', fontWeight: '400' }}>Автор: {selected.artist}</h3>
+                  
+                  {selected.audio_url && (
+                    <div style={{ margin: '10px 0' }}>
+                      <audio controls src={`${API_URL}${selected.audio_url}`} style={{ width: '100%' }} />
+                    </div>
+                  )}
+                  
+                  <hr style={{ border: 'none', height: '1px', backgroundColor: '#23322b', margin: '10px 0' }} />
+                  <pre style={styles.lyricsText}>{selected.lyrics || "Текст отсутствует"}</pre>
+                </>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', gap: '15px', color: '#9ca3af', textAlign: 'center' }}>
+                  <div style={{ fontSize: '3rem' }}>🔒</div>
+                  <h3>Доступ ограничен</h3>
+                  <p style={{ maxWidth: '300px', fontSize: '0.9rem' }}>
+                    Прослушивание аудиозаписей и просмотр текстов доступны только зарегистрированным слушателям системы.
                   </p>
                   <button style={styles.submitBtn} onClick={() => setIsAuthOpen(true)}>Войти в систему</button>
                 </div>
