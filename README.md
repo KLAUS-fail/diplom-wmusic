@@ -1,28 +1,39 @@
-# САНЯ ВОЗЬМИ ТЕЛЕФОН ТАМ НА ДНЕ СООБЩЕНИЕ ТЕБЕ
+# 🛠 Bragi Notes — Инструкция разработчика (Docker Edition)
 
-# diplom-wmusic
-# 🛠 Bragi Notes - Инструкция разработчика
+Пацаны, проект полностью переведен на микросервисную архитектуру. База данных PostgreSQL, бэкенд и фронтенд теперь изолированы и упакованы в контейнеры. Больше ничего вручную настраивать и устанавливать в систему не нужно.
 
-### 🚀 Запуск проекта
-1. **Запуск и подготовка базы данных PostgreSQL** → `sudo service postgresql start`
-2. **Backend:** `cd backend && uvicorn main:app --reload`
-3. **Frontend:** `cd frontend && npm run dev`
+---
 
-### 📋 Важные нюансы
-- **Порты:** После запуска всегда ставить порты 8000 и 5173 в режим **Public**.
-- **БД:** Если изменил `database.py`, удали `music.db` и вызови эндпоинт `/seed`.
-- **API URL:** Актуальная ссылка бэкенда живет в `App.jsx` (строка 12).
-- **В случае вывода `Form data requires "python-multipart" to be installed.` и(или) `You can install "python-multipart" with: pip install python-multipart` прменить команду → `pip install python-multipart`
+## 🚀 Запуск проекта (Самый быстрый способ)
 
-### 🎨 Стек
-- FastAPI, SQLAlchemy (SQLite/Postgres)
-- React + Vite
-### ДЛЯ САНИ
-хоть это и ридми, но
-pip install -r backend/requirements.txt <-в терминал
-не забывай про порты, они должны быть public
-если что пиши
-### КТО БЫЛ ЗДЕСЬ
-KLAUS-fail
-SPBoomer
-GYZZforever
+Для одновременного старта базы данных, сервера и фронтенда введите в корне репозитория одну кома
+`docker compose up --build`
+*(Если хотите запустить в фоновом режиме, чтобы терминал остался свободным, используйте флаг `-d: docker compose up -d`)*
+
+---
+
+## 📋 Важные нюансы
+
+1. Порты (Критично!): После запуска контейнеров обязательно зайдите во вкладку Ports снизу и переведите порты 8000 (бэкенд) и 5173 (фронтенд) в режим Public (правой кнопкой мыши -> Port Visibility -> Public).
+2. Инициализация базы данных (Первый запуск): Чтобы создать таблицы в PostgreSQL и накатить тестовую музыку, перейдите в браузере по ссылке бэкенда на эндпоинт: /seed (например: https://).
+3. API URL: Актуальная ссылка бэкенда по-прежнему живет в App.jsx на строке 12.
+
+---
+
+## 🎨 Стек технологий
+* Database & DevOps: PostgreSQL (в контейнере), Docker, Docker Compose, GitHub Actions (CI/CD)
+* Backend: FastAPI, SQLAlchemy ORM
+* Frontend: React + Vite
+
+---
+
+## 🗄 Для Сани (Заметки по инфраструктуре)
+* Файлы конфигурации окружения лежат в backend/Dockerfile и frontend/Dockerfile.
+* Схема контейнеризации описана в корневом docker-compose.yml.
+* Чистый SQL-дамп структуры таблиц для диплома лежит в docs/structure.sql.
+* Документация по архитектуре развертывания — в docs/docker_documentation.md.
+
+---
+
+## 🥷 КТО БЫЛ ЗДЕСЬ
+KLAUS-fail (Антон), SPBoomer (Саня, поднял инфраструктуру), GYZZforever
