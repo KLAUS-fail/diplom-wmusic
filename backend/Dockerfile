@@ -14,6 +14,7 @@ COPY requirements.txt .
 
 # Обновляем pip и устанавливаем зависимости
 RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir bcrypt==4.0.1 && \
     pip install --no-cache-dir -r requirements.txt
 
 # Копируем весь код бэкенда в контейнер

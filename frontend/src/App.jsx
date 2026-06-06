@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-// Автоматически вычисляем URL бэкенда на основе текущего адреса фронтенда в Codespaces
-const CURRENT_URL = window.location.origin;
-const API_URL = "https://cuddly-spork-4jwpjwxwv5vh5jr9-8000.app.github.dev";
+// Автоматически собираем URL бэкенда из адреса фронтенда в Codespaces
+const getApiUrl = () => {
+  const origin = window.location.origin;
+  if (origin.includes("5173")) {
+    return origin.replace("5173", "8000");
+  }
+  return "https://organic-bassoon-wr7pvww67jrqc975w-8000.app.github.dev";
+};
+
+const API_URL = getApiUrl();
 const currentUserId = 2;
 
 function App() {
@@ -126,31 +133,32 @@ const handleLike = async (e, songId) => {
     }
   };
 
-  const handleAuth = async (e) => {
-    e.preventDefault();
-    try {
-      const formData = new FormData();
-      formData.append('username', username);
-      formData.append('password', password);
-
-      const res = await axios.post(`${API_URL}/${authMode}`, formData);
-      
-      if (authMode === 'login') {
-        setUser(res.data.username);
-        setIsAdmin(res.data.is_admin);
-        localStorage.setItem('bragi_username', res.data.username);
-        localStorage.setItem('bragi_is_admin', res.data.is_admin ? 'true' : 'false');
-        setIsAuthOpen(false);
-      } else {
-        alert("Регистрация успешна! Теперь введите данные для входа.");
-        setAuthMode('login');
-      }
-      setUsername('');
-      setPassword('');
-    } catch (err) { 
-      alert("Ошибка: " + (err.response?.data?.detail || "Сбой аутентификации")); 
+const handleAuth = async (e) => {
+  e.preventDefault();
+  try {
+    const formData = new FormData();
+    formData.append('username', username);
+    formData.append('password', password);
+    
+    // Отправляем форму на бэкенд, который ждет Form(...)
+    const res = await axios.post(`${API_URL}/${authMode}`, formData);
+    
+    if (authMode === 'login') {
+      setUser(res.data.username);
+      setIsAdmin(res.data.is_admin);
+      localStorage.setItem('bragi_username', res.data.username);
+      localStorage.setItem('bragi_is_admin', res.data.is_admin ? 'true' : 'false');
+      setIsAuthOpen(false);
+    } else {
+      alert("Регистрация успешна! Теперь введите данные для входа.");
+      setAuthMode('login');
     }
-  };
+    setUsername('');
+    setPassword('');
+  } catch (err) { 
+    alert("Ошибка: " + (err.response?.data?.detail || "Сбой аутентификации")); 
+  }
+};
 
   const handleLogout = () => {
     setUser(null);

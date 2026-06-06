@@ -1,5 +1,6 @@
 import os
-from fastapi import FastAPI, Depends, Form, UploadFile, File, HTTPException
+import bcrypt
+from fastapi import FastAPI, Depends, Form, UploadFile, File, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -14,8 +15,10 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex="https://.*\\.app\\.github\\.dev",
-    allow_credentials=True,
+    allow_origins=[
+        "https://github.dev",
+        "*"
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -54,46 +57,101 @@ def delete_song(song_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "Произведение успешно удалено"}
 
-# РЕГИСТРАЦИЯ ОБЫЧНОГО ПОЛЬЗОВАТЕЛЯ
+from fastapi import Request
+
+# ВСЕЯДНАЯ РЕГИСТРАЦИЯ
 @app.post("/register")
-def register(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
-    if not username.strip() or not password.strip():
+async def register(request: Request, db: Session = Depends(get_db)):
+    # Проверяем оба варианта отправки данных
+    username, password = None, None
+    content_type = request.headers.get("content-type", "")
+    
+    if "application/json" in content_type:
+        data = await request.json()
+        username = data.get("username")
+        password = data.get("password")
+    else:
+        form_data = await request.form()
+        username = form_data.get("username")
+        password = form_data.get("password")
+
+    if not username or not password or not username.strip() or not password.strip():
         raise HTTPException(status_code=400, detail="Логин и пароль не могут быть пустыми")
     
     existing_user = db.query(User).filter(User.username == username).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Пользователь с таким именем уже существует")
     
-    new_user = User(username=username, hashed_password=password, is_admin=False) 
+    salt = bcrypt.gensalt()
+    pwd_bytes = password.encode('utf-8')
+    hashed_password_string = bcrypt.hashpw(pwd_bytes, salt).decode('utf-8')
+
+    new_user = User(username=username, hashed_password=hashed_password_string, is_admin=False) 
     db.add(new_user)
     db.commit()
     return {"status": "Регистрация успешна"}
 
+# ВСЕЯДНАЯ АВТОРИЗАЦИЯ
 @app.post("/login")
-def login(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
-    if not username.strip() or not password.strip():
+async def login(request: Request, db: Session = Depends(get_db)):
+    username, password = None, None
+    content_type = request.headers.get("content-type", "")
+    
+    if "application/json" in content_type:
+        data = await request.json()
+        username = data.get("username")
+        password = data.get("password")
+    else:
+        form_data = await request.form()
+        username = form_data.get("username")
+        password = form_data.get("password")
+
+    if not username or not password or not username.strip() or not password.strip():
         raise HTTPException(status_code=400, detail="Введите логин и пароль")
     
     user = db.query(User).filter(User.username == username).first()
     
-    if not user or user.hashed_password != password:
+    if not user:
+        raise HTTPException(status_code=401, detail="Неверное имя пользователя или пароль")
+    
+    try:
+        user_pwd_bytes = user.hashed_password.encode('utf-8')
+        input_pwd_bytes = password.encode('utf-8')
+        is_correct = bcrypt.checkpw(input_pwd_bytes, user_pwd_bytes)
+    except Exception:
+        is_correct = False
+
+    if not is_correct:
         raise HTTPException(status_code=401, detail="Неверное имя пользователя или пароль")
         
     return {"status": "Успех", "username": user.username, "is_admin": user.is_admin}
 
-# ПЕРЕСОЗДАЮ СТРУКТУРУ ПОД POSTGRESQL(SPBoomer)
+# ПЕРЕСОЗДАЮ СТРУКТУРУ ПОД POSTGRESQL (ТЕПЕРЬ С ЗАЩИТОЙ КЛЮЧОМ)
 @app.get("/seed")
-def seed_data(db: Session = Depends(get_db)):
+def seed_data(secret_key: str = None, db: Session = Depends(get_db)):
+    # Проверяем секретный ключ для защиты от взлома базы данных
+    if secret_key != "diplom_bragi2026":
+        raise HTTPException(
+            status_code=403, 
+            detail="Доступ запрещен. Неверный или отсутствующий ключ безопасности."
+        )
+
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     
+    # Хешируем демо-пароли для корректной работы новой авторизации
+    salt = bcrypt.gensalt()
+    admin_hash = bcrypt.hashpw("admin".encode('utf-8'), salt).decode('utf-8')
+    sanya_hash = bcrypt.hashpw("123".encode('utf-8'), salt).decode('utf-8')
+
     # Тестовые пользователи
-    admin_user = User(username="admin", hashed_password="admin", is_admin=True)
-    test_user = User(username="sanya", hashed_password="123", is_admin=False)
+    admin_user = User(username="admin", hashed_password=admin_hash, is_admin=True)
+    test_user = User(username="sanya", hashed_password=sanya_hash, is_admin=False)
     db.add(admin_user)
     db.add(test_user)
-    db.flush() 
-    
+    db.flush()
+
+
     # Демонстрационные треки
     song1 = Song(
         title="Восстановленный трек 1",
